@@ -1,0 +1,100 @@
+---
+title: "hypothesis_tests"
+author: "lisa liubovich"
+date: "2023-11-20"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(repos = c(CRAN = "https://cran.rstudio.com/"))
+```
+
+```{r}
+install.packages("tidyverse")
+library(tidyverse)
+install.packages("dplyr")
+library(dplyr)
+library(readr)
+install.packages("ggplot2")
+library(ggplot2)
+```
+
+# **cleaning data**
+
+```{r}
+vdem_unfiltered <- read_csv(file = "../GOVT-650_directory/V-Dem-CY-Full+Others-v13.csv")
+```
+
+```{r cleaning the vdem dataset}
+vdem_filtered <- vdem_unfiltered %>% 
+  filter(country_name == "United States of America", year >= 1980) %>% 
+  group_by(country_name, year) %>% 
+  rename(r1 = v2x_rule,
+         r2 =v2x_jucon,
+         i1 = v2xeg_eqdr,
+         i2 = v2pepwrses,
+         p1 = v2smpolsoc,
+         p2 = v2caviol) %>% 
+  select(r1, r2, i1, i2, p1, p2)
+
+vdem_filtered
+```
+
+```{r}
+ert_unfiltered <- read_csv(file = "../GOVT-650_directory/ert.csv")
+```
+
+```{r cleaning the ert dataset}
+ert_filtered <- ert_unfiltered %>% 
+  filter(country_name == "United States of America", year >= 1980) %>% 
+  group_by(year) %>% 
+  select(aut_ep, aut_ep_outcome, aut_ep_prch)
+
+ert_filtered
+```
+
+```{r combining data sets}
+usa_combined <- left_join(ert_filtered, vdem_filtered, by = "year") %>% 
+  select(-country_name)
+
+usa_combined
+```
+
+# **exploratory analysis and visualizations**
+
+```{r exporting the final table to txt to examine}
+write.table(usa_combined, file = "usa_combined_data.csv", sep = "\t", row.names = FALSE, col.names = TRUE, quote = FALSE)
+```
+
+```{r}
+plot(linear_model_simplified)
+```
+
+```{r}
+plot(density(linear_model_simplified$residuals), main = "Density Plot of Residuals")
+```
+
+```{r}
+library(effects)
+effect_plot <- plot(allEffects(lm(aut_ep ~ r2 + i1 + i2 + p1 + p2, data = usa_combined)))
+```
+
+```{r}
+library(vip)
+vip(linear_model_simplified)
+```
+
+# **Regression**
+
+```{r linear model}
+linear_model <- lm(aut_ep ~ r1 + r2 + i1 + i2 + p1 + p2, data = usa_combined)
+
+summary(linear_model)
+```
+
+```{r linear model simplified}
+linear_model_simplified <- lm(aut_ep ~ r2 + i1 + i2 + p1, data = usa_combined)
+
+summary(linear_model_simplified)
+```
